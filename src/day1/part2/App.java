@@ -1,4 +1,4 @@
-package day1.part1;
+package day1.part2;
 
 import utils.InputReader;
 
@@ -25,22 +25,26 @@ public class App {
                 currentDirection = Direction.Left;
             }
             int steps = Integer.parseInt(line.substring(1));
-            updateDialPosition(currentDirection, steps);
-
-            if (dialPosition == 0) {
-                password++;
-            }
+            int rotations = calculateRotations(currentDirection, steps);
+            password += rotations;
         }
 
         System.out.println(password);
     }
 
-    private static void updateDialPosition(Direction direction, int steps) {
+    private static int calculateRotations(Direction direction, int steps) {
         if (direction == Direction.Left) {
             steps *= -1;
-            dialPosition += 100;
         }
 
-        dialPosition = (dialPosition + steps) % 100;
+        double rawPosition = dialPosition + steps;
+        
+        int completedRotations = (int) Math.floor(Math.abs(rawPosition / 100));
+        int finalRotation = (int) rawPosition % 100;
+
+        completedRotations = rawPosition <= 0 && dialPosition != 0? completedRotations += 1 : completedRotations;
+        dialPosition = finalRotation < 0 ? finalRotation += 100: finalRotation;
+
+        return completedRotations;
     }
 }
