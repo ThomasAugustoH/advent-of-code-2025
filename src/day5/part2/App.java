@@ -19,6 +19,7 @@ public class App {
     private static void run() {
         freshIngredientsId = new ArrayList<>();
         findFreshIngredients();
+        mergeBlocks();
         long totalIds = calculateTotalIds();
         System.out.println(totalIds);
     }
@@ -29,96 +30,9 @@ public class App {
             if (lineRead.equals("")) {
                 break;
             }
-            createNewBlock(lineRead);
-        }
-    }
-
-    private static void createNewBlock(String line) {
-        IdBlock newIdBlock = new IdBlock(line);
-        long lowId = newIdBlock.getLowId();
-        long highId = newIdBlock.getHighId();
-        boolean isNewIdRange = true;
-
-        for (IdBlock idBlock : freshIngredientsId) {
-            if (idBlock.isIdInRange(lowId)) {
-                if (!idBlock.isIdInRange(highId)) {
-                    removeNextIdBlock(idBlock, highId);
-                }
-                isNewIdRange = false;
-                break;
-            }
-            if (idBlock.isIdInRange(highId)) {
-                if (!idBlock.isIdInRange(lowId)) {
-                    removePreviousIdBlock(idBlock, lowId);
-                }
-                isNewIdRange = false;
-                break;
-            }
-        }
-
-        if (isNewIdRange) {
+            IdBlock newIdBlock = new IdBlock(lineRead);
             addNewBlock(newIdBlock);
         }
-    }
-
-    private static void removeNextIdBlock(IdBlock blockToExpand, long highId) {
-        Iterator<IdBlock> idBlocksIterator = freshIngredientsId.iterator();
-        while (idBlocksIterator.hasNext()) {
-            IdBlock blockToCompare = idBlocksIterator.next();
-            if (blockToCompare.isIdInRange(highId)) {
-                blockToExpand.setHighId(blockToCompare.getHighId());
-                idBlocksIterator.remove();
-                return;
-            }
-
-            if (blockToCompare.getLowId() >= blockToExpand.getHighId() && blockToCompare.getHighId() <= highId) {
-                Iterator<IdBlock> blocksInRange = freshIngredientsId.iterator();
-                while (blocksInRange.hasNext()) {
-                    IdBlock blockToDelete = blocksInRange.next();
-                    if (blockToDelete == blockToExpand) {
-                        continue;
-                    }
-                    if (blockToDelete.getHighId() > highId) {
-                        break;
-                    }
-                    blocksInRange.remove();
-                }
-                blockToExpand.setHighId(highId);
-                return;
-            }
-        }
-        blockToExpand.setHighId(highId);
-    }
-
-    private static void removePreviousIdBlock(IdBlock blockToExpand, long lowId) {
-        Iterator<IdBlock> idBlocksIterator = freshIngredientsId.iterator();
-        while (idBlocksIterator.hasNext()) {
-            IdBlock blockToCompare = idBlocksIterator.next();
-            if (blockToExpand.equals(blockToCompare)) {
-                continue;
-            }
-            if (blockToCompare.isIdInRange(lowId)) {
-                blockToExpand.setLowId(blockToCompare.getLowId());
-                idBlocksIterator.remove();
-                return;
-            }
-            if (blockToCompare.getHighId() <= blockToExpand.getLowId() && blockToCompare.getLowId() >= lowId) {
-                Iterator<IdBlock> blocksInRange = freshIngredientsId.iterator();
-                while (blocksInRange.hasNext()) {
-                    IdBlock blockToDelete = blocksInRange.next();
-                    if (blockToDelete == blockToExpand) {
-                        continue;
-                    }
-                    if (blockToDelete.getLowId() > lowId) {
-                        break;
-                    }
-                    blocksInRange.remove();
-                }
-                blockToExpand.setLowId(lowId);
-                return;
-            }
-        }
-        blockToExpand.setLowId(lowId);
     }
 
     private static void addNewBlock(IdBlock newIdBlock) {
@@ -126,12 +40,37 @@ public class App {
         int index = 0;
         while (idBlocksIterator.hasNext()) {
             IdBlock idBlock = idBlocksIterator.next();
-            if (idBlock.getLowId() > newIdBlock.getHighId()) {
+            if (idBlock.getLowId() > newIdBlock.getLowId()) {
                 break;
             }
             index++;
         }
         freshIngredientsId.add(index, newIdBlock);
+    }
+
+    private static void mergeBlocks() {
+        Iterator<IdBlock> idBlocksIterator = freshIngredientsId.iterator();
+        IdBlock lowerIdBlock = idBlocksIterator.next();
+        boolean setNewLowerId = false;
+        IdBlock blockToRemove = null;
+        while (idBlocksIterator.hasNext()) {
+            if (setNewLowerId) {
+                lowerIdBlock = blockToRemove;
+                setNewLowerId = false;
+                continue;
+            } else {
+                blockToRemove = idBlocksIterator.next();
+            }
+
+            if (lowerIdBlock.getHighId() > blockToRemove.getHighId()) {
+                idBlocksIterator.remove();
+            } else if (blockToRemove.isIdInRange(lowerIdBlock.getHighId())) {
+                lowerIdBlock.setHighId(blockToRemove.getHighId());
+                idBlocksIterator.remove();
+            } else {
+                setNewLowerId = true;
+            }
+        }
     }
 
     private static long calculateTotalIds() {
